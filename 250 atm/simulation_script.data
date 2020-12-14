@@ -1,0 +1,44 @@
+units		real
+atom_style	full
+
+pair_style	lj/cut/coul/cut 10.0
+pair_modify	mix geometric
+
+bond_style	zero
+angle_style	zero
+
+read_data	methdata.lmp
+
+pair_coeff	1 1 0.2072 3.748 	#	CH3
+pair_coeff	2 2 0.0210 1.580	#	H
+pair_coeff	3 3 0.1554 3.192	#	O
+
+bond_coeff 1 1.43
+bond_coeff 2 0.945
+
+angle_coeff	1 108.5
+
+min_style   sd
+minimize 1e-10 1e-10 100 100
+
+velocity	all create 300.0 2345
+
+timestep	2.0
+
+fix	stiff all shake 0.0001 20 0 b 1	2 a 1
+
+#fix	1 all nvt temp 300.0 300.0 $(100.0*dt)
+fix     1 all npt temp 300.0 300.0 $(100.0*dt) iso 250.0 250.0 $(1000.0*dt)
+
+thermo	1000
+thermo_style	custom step time temp etotal pe ke ecoul evdwl lx vol press density enthalpy 
+
+dump TRAJ all custom 1000 npt_methanol_simulation.lammpstrj id mol type element xs ys zs
+dump_modify TRAJ element CH3 H O
+
+compute myRDF all rdf 50
+fix 2 all ave/time 100 1 20000 c_myRDF[*] file methanol_simulation.rdf mode vector
+
+run 750000
+
+write_data npt_simulation_result.lmp
